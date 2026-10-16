@@ -34,6 +34,10 @@ class OpenVLAPolicy:
         from transformers import AutoModelForVision2Seq, AutoProcessor
 
         self.torch, self.device, self.center_crop = torch, device, center_crop
+        if str(device).startswith("cuda"):
+            # Pick the card by index instead of CUDA_VISIBLE_DEVICES: robosuite cross-checks that variable against
+            # MUJOCO_EGL_DEVICE_ID. set_device keeps stray CUDA contexts off GPU 0.
+            torch.cuda.set_device(device)
         self.processor = AutoProcessor.from_pretrained(ckpt, trust_remote_code=True)
         self.vla = AutoModelForVision2Seq.from_pretrained(
             ckpt, attn_implementation=attn, torch_dtype=torch.bfloat16,
