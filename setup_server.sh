@@ -14,18 +14,19 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda env list | grep -q "^$ENV_NAME " || conda create -y -n "$ENV_NAME" python=3.10
 conda activate "$ENV_NAME"
 
-pip install "numpy<2" "mujoco==3.2.7" "robosuite==1.4.1" "bddl==1.0.1" future easydict "gym==0.25.2" \
+pip install --no-cache-dir "numpy<2" "mujoco==3.2.7" "robosuite==1.4.1" "bddl==1.0.1" future easydict "gym==0.25.2" \
     cloudpickle pyyaml pillow matplotlib imageio
-pip install "transformers==4.40.1" "tokenizers==0.19.1" "timm==0.9.10" accelerate sentencepiece protobuf \
+pip install --no-cache-dir "transformers==4.40.1" "tokenizers==0.19.1" "timm==0.9.10" accelerate sentencepiece protobuf \
     "tensorflow-cpu==2.15.1"
-pip install --force-reinstall --index-url https://download.pytorch.org/whl/cu128 torch torchvision
-pip install "numpy<2"  # torch's reinstall may pull numpy 2
+pip install --no-cache-dir --force-reinstall --index-url https://download.pytorch.org/whl/cu128 torch torchvision
+pip install --no-cache-dir "numpy<2"  # torch's reinstall may pull numpy 2
 
 # LIBERO has no libero/__init__.py, so `pip install -e` does not expose it: use PYTHONPATH (run.md).
 # Write LIBERO's config non-interactively (importing libero.libero otherwise prompts on stdin).
-mkdir -p ~/.libero
+# Kept inside EXT, not ~/.libero: run.md exports LIBERO_CONFIG_PATH to point here.
+mkdir -p "$EXT/.libero"
 R="$EXT/LIBERO/libero/libero"
-cat > ~/.libero/config.yaml <<YAML
+cat > "$EXT/.libero/config.yaml" <<YAML
 benchmark_root: $R
 bddl_files: $R/bddl_files
 init_states: $R/init_files

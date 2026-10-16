@@ -14,12 +14,14 @@ bash setup_server.sh ~/Desktop/sj/peerview_ext ysj
 | 1번째 위치 인자 | `~/Desktop/sj/peerview_ext` | LIBERO·LIBERO-Occ 클론 위치 |
 | 2번째 위치 인자 | `ysj` | conda env 이름. 없으면 python 3.10으로 생성 |
 
-매 셸마다 아래를 먼저 실행. GPU는 UUID로 1장 고정(`nvidia-smi -L`), EGL 장치도 같은 카드로 맞춤.
+매 셸마다 아래를 먼저 실행. GPU는 UUID로 1장 고정(`nvidia-smi -L`), EGL 장치도 같은 카드로 맞춤. LIBERO 설정과 모델 캐시(약 15GB)도 `~/Desktop/sj` 안에 두도록 지정.
 
 ```bash
 conda activate ysj
 export PYTHONPATH=$HOME/Desktop/sj/peerview_ext/LIBERO
 export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
+export LIBERO_CONFIG_PATH=$HOME/Desktop/sj/peerview_ext/.libero
+export HF_HOME=$HOME/Desktop/sj/hf_cache
 export CUDA_VISIBLE_DEVICES=GPU-xxxxxxxx
 export MUJOCO_EGL_DEVICE_ID=0
 cd ~/Desktop/sj/peerview
