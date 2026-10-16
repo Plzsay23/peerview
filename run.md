@@ -14,16 +14,17 @@ bash setup_server.sh ~/Desktop/sj/peerview_ext ysj
 | 1번째 위치 인자 | `~/Desktop/sj/peerview_ext` | LIBERO·LIBERO-Occ 클론 위치 |
 | 2번째 위치 인자 | `ysj` | conda env 이름. 없으면 python 3.10으로 생성 |
 
-매 셸마다 아래를 먼저 실행. GPU는 UUID로 1장 고정(`nvidia-smi -L`), EGL 장치도 같은 카드로 맞춤. LIBERO 설정과 모델 캐시(약 15GB)도 `~/Desktop/sj` 안에 두도록 지정.
+매 셸마다 아래를 먼저 실행. GPU는 1장 고정(번호는 `nvidia-smi`로 빈 카드 확인 후 둘 다 같은 값), EGL 장치도 같은 카드로 맞춤. LIBERO 설정과 모델 캐시(약 15GB)도 `~/Desktop/sj` 안에 두도록 지정.
 
 ```bash
 conda activate ysj
 export PYTHONPATH=$HOME/Desktop/sj/peerview_ext/LIBERO
 export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
 export LIBERO_CONFIG_PATH=$HOME/Desktop/sj/peerview_ext/.libero
+export __EGL_VENDOR_LIBRARY_FILENAMES=$HOME/Desktop/sj/peerview_ext/egl/10_nvidia.json
 export HF_HOME=$HOME/Desktop/sj/hf_cache
-export CUDA_VISIBLE_DEVICES=GPU-xxxxxxxx
-export MUJOCO_EGL_DEVICE_ID=0
+export CUDA_VISIBLE_DEVICES=3
+export MUJOCO_EGL_DEVICE_ID=3
 cd ~/Desktop/sj/peerview
 ```
 
@@ -131,7 +132,8 @@ python summarize.py runs/g0_spatial \
 
 ## 주의
 
-- 1·3단계와 2단계의 `--dry_policy` 경로는 로컬 WSL(py3.10, mujoco 3.2.7, robosuite 1.4.1)에서 실행 확인. 0단계와 실제 OpenVLA 경로는 서버에서 처음 돌림.
+- 1·3단계와 2단계의 `--dry_policy` 경로는 로컬 WSL(py3.10, mujoco 3.2.7, robosuite 1.4.1)에서 실행 확인. 1단계는 서버(A6000, 드라이버 535)에서도 확인. 실제 OpenVLA 경로는 서버에서 처음 돌림.
+- EGL 장치가 0개로 나오면("between 0 and -1") `__EGL_VENDOR_LIBRARY_FILENAMES` 가 빠진 것. 서버의 glvnd에 NVIDIA EGL이 등록돼 있지 않음.
 - `teacher_argmax_ok`(집계 첫 줄)가 1이 아니면 teacher forcing 위치가 어긋난 것. 결과를 쓰지 말 것.
 - init 파일은 torch 없이 numpy 전용 unpickler로 읽음. numpy 외 객체가 들어 있으면 거부함.
 - peer 카메라는 모델의 `sideview` 카메라를 빌려 씀. 정책 입력(agentview)은 건드리지 않음.
