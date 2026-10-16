@@ -61,6 +61,7 @@ def parse():
     p.add_argument("--attn", default="sdpa")
     p.add_argument("--no_center_crop", action="store_true")
     p.add_argument("--dry_policy", action="store_true")
+    p.add_argument("--original", action="store_true", help="original LIBERO scenes (no occluder): pipeline sanity check")
     p.add_argument("--save_png", type=int, default=3)
     return p.parse_args()
 
@@ -99,7 +100,7 @@ def main():
     a = parse()
     os.makedirs(os.path.join(a.out, "png"), exist_ok=True)
     rng = np.random.default_rng(a.seed)
-    tasks = list_tasks(a.occ_root, a.libero_root, a.suites)
+    tasks = list_tasks(a.occ_root, a.libero_root, a.suites, original=a.original)
     if a.task_filter:
         tasks = [t for t in tasks if a.task_filter in t["name"]]
     run_tasks = [t for t in tasks if t["skip_reason"] is None]

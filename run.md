@@ -118,7 +118,7 @@ python probe.py \
 | `--attn` | `sdpa` | flash-attn 미설치 기준. Blackwell에서 막히면 `eager` |
 | `--save_png` | `3` | 태스크당 저장할 조건 그림 수 |
 
-`--dry_policy` 는 모델 없이 파이프라인만 돌림. `--no_center_crop` 은 쓰지 않음(LIBERO 체크포인트는 crop 학습).
+`--dry_policy` 는 모델 없이 파이프라인만 돌림. `--original` 은 같은 태스크를 원본 LIBERO 장면(폐색 물체 없음)으로 돌림 - `--drive occ --probe_every 0` 과 함께 쓰면 정책 파이프라인 위생 검사(OpenVLA 보고치 spatial 약 85%). `--no_center_crop` 은 쓰지 않음(LIBERO 체크포인트는 crop 학습).
 
 ## 3. 집계
 

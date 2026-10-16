@@ -58,8 +58,11 @@ def bddl_obj_of_interest(text):
     return _section(text, "obj_of_interest").split()
 
 
-def list_tasks(occ_root, libero_root, suites=None, require_init=True):
+def list_tasks(occ_root, libero_root, suites=None, require_init=True, original=False):
     """Every LIBERO-Occ task with its original BDDL, init file and occluder set.
+
+    original=True: same task list, but each task points at the ORIGINAL LIBERO bddl + init file and has no
+    occluders. Sanity check of the policy pipeline (OpenVLA reports ~85% on libero_spatial).
 
     occ_root:    LIBERO-Occ checkout (benchmark_assets/ is read in place, no install step).
     libero_root: upstream LIBERO checkout (for the original BDDL files).
@@ -90,6 +93,12 @@ def list_tasks(occ_root, libero_root, suites=None, require_init=True):
                 targets=bddl_obj_of_interest(occ_txt),
             )
             # No added object = occlusion made by moving existing objects; we cannot tell which.
+            if original:
+                oi = os.path.join(libero_root, "libero", "libero", "init_files", suite, stem + ".pruned_init")
+                t.update(bddl=orig_path, init=oi if os.path.exists(oi) else None, occluders=[], original=True)
+                t["skip_reason"] = "no init file" if (require_init and t["init"] is None) else None
+                tasks.append(t)
+                continue
             t["skip_reason"] = (
                 "no added occluder" if not t["occluders"]
                 else "no init file" if (require_init and t["init"] is None)
