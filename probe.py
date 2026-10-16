@@ -119,7 +119,12 @@ def main():
             else:
                 from policy import OpenVLAPolicy
                 ckpt = a.ckpt_template.format(suffix=CKPT_SUFFIX[t["suite"]])
+                print(f"[load] {ckpt} -> {a.device} (first run downloads ~15GB into HF_HOME={os.environ.get('HF_HOME')})", flush=True)
+                t0 = time.time()
                 policy = OpenVLAPolicy(ckpt, t["suite"], a.device, a.attn, center_crop=not a.no_center_crop)
+                import torch
+                print(f"[load] done in {time.time() - t0:.0f}s, unnorm_key={policy.unnorm_key}, preproc={policy.preproc}, "
+                      f"gpu_mem={torch.cuda.memory_allocated(a.device) / 2**30:.1f}GiB", flush=True)
             policy_suite = t["suite"]
             cfg.setdefault("policies", {})[t["suite"]] = dict(name=policy.name, unnorm_key=policy.unnorm_key,
                                                              preproc=policy.preproc)
@@ -150,16 +155,23 @@ def main():
                 found, _ = sampler.sample(scene, c, 1)
                 ep_peer = found[:1]
             success, steps, n_probe = False, 0, 0
+            t_ep = time.time()
             for step in range(max_steps):
                 meta = dict(suite=t["suite"], task=t["name"], ep=ep, step=step, drive=a.drive)
                 do_probe = a.probe_every and step % a.probe_every == 0 and (not a.max_probes or n_probe < a.max_probes)
                 if do_probe:
+                    t_pr = time.time()
                     c = look_center(scene)
                     peers, tried = sampler.sample(scene, c, a.n_peer)
                     images, diags = render_conditions(scene, peers, a.hole_iters)
                     meta.update(n_peer_found=len(peers), peer_tried=tried)
-                    for row in score(policy, t["language"], images, diags, meta):
+                    rows = score(policy, t["language"], images, diags, meta)
+                    for row in rows:
                         jdump(f_pr, row)
+                    kl = {c2: np.mean([r["kl"] for r in rows if r["cond"] == c2]) for c2 in ("occ", "peer", "reproj")}
+                    print(f"  ep{ep} t={step:3d} probe peers={len(peers)}/{tried} KL occ={kl['occ']:.2f} "
+                          f"peer={kl['peer']:.2f} reproj={kl['reproj']:.2f} "
+                          f"teacher_ok={rows[0]['teacher_argmax_ok']} ({time.time() - t_pr:.1f}s)", flush=True)
                     if n_png < a.save_png:
                         grid_png(images, os.path.join(a.out, "png", f"{t['suite']}__{t['name'][:60]}__ep{ep}_t{step}.png"))
                         n_png += 1
@@ -175,13 +187,15 @@ def main():
                 _, act = policy.act(img, t["language"])
                 obs, _, done, _ = env.step(env_action(act).tolist())
                 steps = step + 1
+                if step and step % 50 == 0:
+                    print(f"  ep{ep} t={step:3d} ({time.time() - t_ep:.0f}s)", flush=True)
                 if done:
                     success = True
                     break
             jdump(f_ep, dict(suite=t["suite"], task=t["name"], ep=ep, drive=a.drive, success=success, steps=steps,
                              n_probe=n_probe, peer_found=None if ep_peer is None else bool(ep_peer),
                              peer=None if not ep_peer else {k: v for k, v in ep_peer[0].items() if k not in ("pos", "center")}))
-            print(f"  ep{ep} success={success} steps={steps} probes={n_probe}", flush=True)
+            print(f"  ep{ep} success={success} steps={steps} probes={n_probe} ({time.time() - t_ep:.0f}s)", flush=True)
         task_log.append(info)
         json.dump(task_log + [dict(t, run=False) for t in tasks if t["skip_reason"]],
                   open(os.path.join(a.out, "tasks.json"), "w"), indent=1, default=str)
