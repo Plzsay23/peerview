@@ -14,12 +14,12 @@ import numpy as np
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("run_dir")
+    p.add_argument("run_dir", nargs="+", help="one or more --out dirs (e.g. one per shard); figure goes to the first")
     p.add_argument("--min_kl", type=float, default=0.5)
     p.add_argument("--vis_ratio", type=float, default=0.7)
     a = p.parse_args()
 
-    rows = [json.loads(l) for l in open(os.path.join(a.run_dir, "probe.jsonl"))]
+    rows = [json.loads(l) for d in a.run_dir for l in open(os.path.join(d, "probe.jsonl"))]
     states = defaultdict(dict)
     for r in rows:
         states[(r["task"], r["ep"], r["step"])][(r["cond"], r["peer"])] = r
@@ -57,8 +57,8 @@ def main():
     ax.set_ylabel("recovery (median, IQR)")
     ax.set_title(f"G0: frozen OpenVLA, {n_used} occluded states")
     fig.tight_layout()
-    fig.savefig(os.path.join(a.run_dir, "g0_bars.png"), dpi=150)
-    print("wrote", os.path.join(a.run_dir, "g0_bars.png"))
+    fig.savefig(os.path.join(a.run_dir[0], "g0_bars.png"), dpi=150)
+    print("wrote", os.path.join(a.run_dir[0], "g0_bars.png"))
 
 
 if __name__ == "__main__":

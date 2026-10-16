@@ -35,6 +35,7 @@ def parse():
     p.add_argument("--suites", nargs="+", default=list(MAX_STEPS))
     p.add_argument("--task_filter", default="")
     p.add_argument("--max_tasks", type=int, default=0)
+    p.add_argument("--shard", default="0/1", help="i/n: run every n-th task starting at i (one process per GPU)")
     p.add_argument("--n_init", type=int, default=10)
     p.add_argument("--drive", default="clean", choices=["clean", "occ", "peer", "reproj"])
     p.add_argument("--probe_every", type=int, default=10)
@@ -102,6 +103,9 @@ def main():
     run_tasks = [t for t in tasks if t["skip_reason"] is None]
     if a.max_tasks:
         run_tasks = run_tasks[: a.max_tasks]
+    si, sn = (int(x) for x in a.shard.split("/"))
+    run_tasks = run_tasks[si::sn]
+    print(f"shard {a.shard}: {len(run_tasks)} tasks", flush=True)
 
     import mujoco
     cfg = dict(vars(a), python=sys.version, platform=platform.platform(), mujoco=mujoco.__version__,

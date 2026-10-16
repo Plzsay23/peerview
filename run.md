@@ -96,6 +96,7 @@ python probe.py \
 | `--out` | 필수 | `probe.jsonl`·`episodes.jsonl`·`tasks.json`·`config.json`·`png/` |
 | `--suites` | 4개 전부 | suite마다 체크포인트 7B를 따로 받음(약 15GB씩). 최소판은 spatial 하나 |
 | `--max_tasks` | `0` | 0이면 전부. 빠른 확인은 2 |
+| `--shard` | `0/1` | `i/n`: 태스크를 n개로 나눠 i번째만. GPU마다 프로세스 하나(`MUJOCO_EGL_DEVICE_ID`·`--device`·`--out`을 각자) |
 | `--n_init` | `10` | 태스크당 에피소드(초기 상태) 수 |
 | `--drive` | `clean` | 로봇을 움직이는 입력. clean = 교사 시점이라 과제가 진행되는 상태를 모음. occ/peer/reproj도 가능 |
 | `--probe_every` | `10` | 몇 step마다 4조건을 채점할지. 0이면 성공률만 잼 |
@@ -125,7 +126,7 @@ python summarize.py runs/g0_spatial \
 
 | 인자 | 기본 | 뜻 |
 |---|---|---|
-| 위치 인자 | 필수 | 2단계 `--out` |
+| 위치 인자 | 필수 | 2단계 `--out`. shard로 나눠 돌렸으면 폴더를 전부 나열(합쳐서 집계, 그림은 첫 폴더에) |
 | `--min_kl` | `0.5` | 폐색이 정책 출력을 이만큼 이상 바꾼 상태만 셈(위생 검사) |
 | `--vis_ratio` | `0.7` | 폐색 시점에서 대상이 clean 대비 이 비율 미만으로 보이는 상태만 셈 |
 
