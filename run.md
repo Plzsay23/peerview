@@ -6,17 +6,18 @@
 ## 0. 환경 (1회)
 
 ```bash
-bash setup_server.sh ~/Desktop/sj/peerview_ext
+bash setup_server.sh ~/Desktop/sj/peerview_ext ysj
 ```
 
 | 인자 | 기본 | 뜻 |
 |---|---|---|
-| 1번째 위치 인자 | `~/Desktop/sj/peerview_ext` | LIBERO·LIBERO-Occ 클론 위치. conda env 이름은 `peerview` 고정 |
+| 1번째 위치 인자 | `~/Desktop/sj/peerview_ext` | LIBERO·LIBERO-Occ 클론 위치 |
+| 2번째 위치 인자 | `ysj` | conda env 이름. 없으면 python 3.10으로 생성 |
 
 매 셸마다 아래를 먼저 실행. GPU는 UUID로 1장 고정(`nvidia-smi -L`), EGL 장치도 같은 카드로 맞춤.
 
 ```bash
-conda activate peerview
+conda activate ysj
 export PYTHONPATH=$HOME/Desktop/sj/peerview_ext/LIBERO
 export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
 export CUDA_VISIBLE_DEVICES=GPU-xxxxxxxx

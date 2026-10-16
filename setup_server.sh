@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # One-time environment for G0 on the lab server (A6000 sm_86 / RTX PRO 5000 sm_120).
-# Usage: bash setup_server.sh [EXT_DIR]     (default EXT_DIR=~/Desktop/sj/peerview_ext)
-# Installs into conda env "peerview". torch goes LAST: earlier pins would otherwise drag it back.
+# Usage: bash setup_server.sh [EXT_DIR] [ENV_NAME]   (defaults: ~/Desktop/sj/peerview_ext, ysj)
+# Installs into conda env "ysj" (2nd arg). torch goes LAST: earlier pins would otherwise drag it back.
 set -euo pipefail
 EXT=${1:-$HOME/Desktop/sj/peerview_ext}
+ENV_NAME=${2:-ysj}
 mkdir -p "$EXT" && cd "$EXT"
 
 [ -d LIBERO ] || git clone --depth 1 https://github.com/Lifelong-Robot-Learning/LIBERO.git
 [ -d Libero-Occ ] || git clone --depth 1 https://github.com/litsh/Libero-Occ.git
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
-conda env list | grep -q '^peerview ' || conda create -y -n peerview python=3.10
-conda activate peerview
+conda env list | grep -q "^$ENV_NAME " || conda create -y -n "$ENV_NAME" python=3.10
+conda activate "$ENV_NAME"
 
 pip install "numpy<2" "mujoco==3.2.7" "robosuite==1.4.1" "bddl==1.0.1" future easydict "gym==0.25.2" \
     cloudpickle pyyaml pillow matplotlib imageio
