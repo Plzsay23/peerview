@@ -74,6 +74,8 @@ python probe.py \
   --n_peer 3 \
   --peer_tries 24 \
   --min_target_px 30 \
+  --peer_aim hidden \
+  --min_fill 0.5 \
   --az_min 30 \
   --az_max 150 \
   --el_min 15 \
