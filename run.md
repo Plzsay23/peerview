@@ -14,7 +14,7 @@ bash setup_server.sh ~/Desktop/sj/peerview_ext ysj
 | 1번째 위치 인자 | `~/Desktop/sj/peerview_ext` | LIBERO·LIBERO-Occ 클론 위치 |
 | 2번째 위치 인자 | `ysj` | conda env 이름. 없으면 python 3.10으로 생성 |
 
-매 셸마다 아래를 먼저 실행. GPU는 1장 고정(번호는 `nvidia-smi`로 빈 카드 확인 후 둘 다 같은 값), EGL 장치도 같은 카드로 맞춤. LIBERO 설정과 모델 캐시(약 15GB)도 `~/Desktop/sj` 안에 두도록 지정.
+매 셸마다 아래를 먼저 실행. GPU는 1장 고정: `nvidia-smi`로 빈 카드 번호를 확인해 `MUJOCO_EGL_DEVICE_ID`(렌더링)와 2단계 `--device cuda:N`(정책)에 같은 번호. `CUDA_VISIBLE_DEVICES`는 쓰지 않음(robosuite가 EGL 번호와 교차 검사함). LIBERO 설정과 모델 캐시(약 15GB)도 `~/Desktop/sj` 안에 두도록 지정.
 
 ```bash
 conda activate ysj
@@ -23,7 +23,7 @@ export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
 export LIBERO_CONFIG_PATH=$HOME/Desktop/sj/peerview_ext/.libero
 export __EGL_VENDOR_LIBRARY_FILENAMES=$HOME/Desktop/sj/peerview_ext/egl/10_nvidia.json
 export HF_HOME=$HOME/Desktop/sj/hf_cache
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
 export MUJOCO_EGL_DEVICE_ID=3
 cd ~/Desktop/sj/peerview
 ```
@@ -86,7 +86,7 @@ python probe.py \
   --max_steps 0 \
   --seed 7 \
   --ckpt_template "openvla/openvla-7b-finetuned-libero-{suffix}" \
-  --device cuda:0 \
+  --device cuda:3 \
   --attn sdpa \
   --save_png 3
 ```
@@ -109,6 +109,7 @@ python probe.py \
 | `--hole_iters` | `2` | see-through 구멍 메우기 반복(3x3 이웃) |
 | `--max_steps` | `0` | 0이면 suite별 openvla 값(220/280/300/520) |
 | `--ckpt_template` | 위 값 | `{suffix}` = spatial/object/goal/10. 로컬 경로 템플릿도 가능 |
+| `--device` | `cuda:0` | 정책을 올릴 카드. `MUJOCO_EGL_DEVICE_ID`와 같은 번호 |
 | `--attn` | `sdpa` | flash-attn 미설치 기준. Blackwell에서 막히면 `eager` |
 | `--save_png` | `3` | 태스크당 저장할 조건 그림 수 |
 
