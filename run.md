@@ -135,6 +135,7 @@ python summarize.py runs/g0_spatial \
 ## 주의
 
 - 1·3단계와 2단계의 `--dry_policy` 경로는 로컬 WSL(py3.10, mujoco 3.2.7, robosuite 1.4.1)에서 실행 확인. 1단계는 서버(A6000, 드라이버 535)에서도 확인. 실제 OpenVLA 경로는 서버에서 처음 돌림.
+- EGL 번호는 nvidia-smi 번호와 다름(서버에서 `MUJOCO_EGL_DEVICE_ID=3` 이 nvidia-smi 0번에 렌더링). `python egl_devices.py` 로 대응표를 보고 고를 것.
 - EGL 장치가 0개로 나오면("between 0 and -1") `__EGL_VENDOR_LIBRARY_FILENAMES` 가 빠진 것. 서버의 glvnd에 NVIDIA EGL이 등록돼 있지 않음.
 - `teacher_argmax_ok`(집계 첫 줄)가 1이 아니면 teacher forcing 위치가 어긋난 것. 결과를 쓰지 말 것.
 - init 파일은 torch 없이 numpy 전용 unpickler로 읽음. numpy 외 객체가 들어 있으면 거부함.
