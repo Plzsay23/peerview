@@ -14,7 +14,7 @@ bash setup_server.sh ~/Desktop/sj/peerview_ext ysj
 | 1번째 위치 인자 | `~/Desktop/sj/peerview_ext` | LIBERO·LIBERO-Occ 클론 위치 |
 | 2번째 위치 인자 | `ysj` | conda env 이름. 없으면 python 3.10으로 생성 |
 
-매 셸마다 아래를 먼저 실행. GPU는 1장 고정: `nvidia-smi`로 빈 카드 번호를 확인해 `MUJOCO_EGL_DEVICE_ID`(렌더링)와 2단계 `--device cuda:N`(정책)에 같은 번호. `CUDA_VISIBLE_DEVICES`는 쓰지 않음(robosuite가 EGL 번호와 교차 검사함). LIBERO 설정과 모델 캐시(약 15GB)도 `~/Desktop/sj` 안에 두도록 지정.
+매 셸마다 아래를 먼저 실행. GPU는 1장 고정: `nvidia-smi`로 빈 카드 번호 N을 정해 2단계 `--device cuda:N`(정책)에 쓰고, 렌더링 `MUJOCO_EGL_DEVICE_ID`는 `python egl_devices.py` 표에서 nvidia-smi N에 해당하는 EGL 번호(이 서버는 3-N). `CUDA_VISIBLE_DEVICES`는 쓰지 않음(robosuite가 EGL 번호와 교차 검사함). LIBERO 설정과 모델 캐시(약 15GB)도 `~/Desktop/sj` 안에 두도록 지정.
 
 ```bash
 conda activate ysj
@@ -24,7 +24,7 @@ export LIBERO_CONFIG_PATH=$HOME/Desktop/sj/peerview_ext/.libero
 export __EGL_VENDOR_LIBRARY_FILENAMES=$HOME/Desktop/sj/peerview_ext/egl/10_nvidia.json
 export HF_HOME=$HOME/Desktop/sj/hf_cache
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
-export MUJOCO_EGL_DEVICE_ID=3
+export MUJOCO_EGL_DEVICE_ID=0   # = nvidia-smi GPU 3 on this server
 cd ~/Desktop/sj/peerview
 ```
 
@@ -110,7 +110,7 @@ python probe.py \
 | `--hole_iters` | `2` | see-through 구멍 메우기 반복(3x3 이웃) |
 | `--max_steps` | `0` | 0이면 suite별 openvla 값(220/280/300/520) |
 | `--ckpt_template` | 위 값 | `{suffix}` = spatial/object/goal/10. 로컬 경로 템플릿도 가능 |
-| `--device` | `cuda:0` | 정책을 올릴 카드. `MUJOCO_EGL_DEVICE_ID`와 같은 번호 |
+| `--device` | `cuda:0` | 정책을 올릴 카드(nvidia-smi 번호, `CUDA_DEVICE_ORDER=PCI_BUS_ID` 기준) |
 | `--attn` | `sdpa` | flash-attn 미설치 기준. Blackwell에서 막히면 `eager` |
 | `--save_png` | `3` | 태스크당 저장할 조건 그림 수 |
 
@@ -135,7 +135,7 @@ python summarize.py runs/g0_spatial \
 ## 주의
 
 - 1·3단계와 2단계의 `--dry_policy` 경로는 로컬 WSL(py3.10, mujoco 3.2.7, robosuite 1.4.1)에서 실행 확인. 1단계는 서버(A6000, 드라이버 535)에서도 확인. 실제 OpenVLA 경로는 서버에서 처음 돌림.
-- EGL 번호는 nvidia-smi 번호와 다름(서버에서 `MUJOCO_EGL_DEVICE_ID=3` 이 nvidia-smi 0번에 렌더링). `python egl_devices.py` 로 대응표를 보고 고를 것.
+- EGL 번호는 nvidia-smi 번호와 다름. 이 서버(A6000 4장)는 역순: EGL 0/1/2/3 = nvidia-smi 3/2/1/0. 다른 서버에서는 `python egl_devices.py` 로 다시 확인.
 - EGL 장치가 0개로 나오면("between 0 and -1") `__EGL_VENDOR_LIBRARY_FILENAMES` 가 빠진 것. 서버의 glvnd에 NVIDIA EGL이 등록돼 있지 않음.
 - `teacher_argmax_ok`(집계 첫 줄)가 1이 아니면 teacher forcing 위치가 어긋난 것. 결과를 쓰지 말 것.
 - init 파일은 torch 없이 numpy 전용 unpickler로 읽음. numpy 외 객체가 들어 있으면 거부함.
