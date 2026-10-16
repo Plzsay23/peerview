@@ -69,7 +69,8 @@ def _fill_holes(img, zbuf, lab, filled, region, iters):
 
 def see_through(ego_rgb, ego_seg, peer_rgb, peer_depth, peer_seg, ego_pose, peer_pose,
                 occ_ids, tgt_ids, hole_iters=2, max_depth=10.0):
-    """Returns (image, stats). Only pixels where the ego camera sees an occluder are replaced."""
+    """Returns (image, zbuf, filled, stats). Only pixels where the ego camera sees an occluder are replaced.
+    ego_rgb / peer_rgb may be None to get coverage only (used when choosing peer poses)."""
     H, W = ego_seg.shape
     mask = np.isin(ego_seg, occ_ids)
     src = (peer_seg >= 0) & ~np.isin(peer_seg, occ_ids) & (peer_depth < max_depth)
@@ -81,11 +82,13 @@ def see_through(ego_rgb, ego_seg, peer_rgb, peer_depth, peer_seg, ego_pose, peer
     ok = mask[vi, ui]
     ui, vi, d, pv, pu = ui[ok], vi[ok], d[ok], pv[ok], pu[ok]
 
-    out = ego_rgb.copy()
+    colour = ego_rgb is not None and peer_rgb is not None
+    out = ego_rgb.copy() if colour else np.zeros((H, W, 3), np.uint8)
     zbuf = np.full((H, W), np.inf)
     lab = np.full((H, W), -1)
     order = np.argsort(-d)  # far first, so the nearest point is written last and wins
-    out[vi[order], ui[order]] = peer_rgb[pv[order], pu[order]]
+    if colour:
+        out[vi[order], ui[order]] = peer_rgb[pv[order], pu[order]]
     zbuf[vi[order], ui[order]] = d[order]
     lab[vi[order], ui[order]] = peer_seg[pv[order], pu[order]]
     filled = np.isfinite(zbuf)
@@ -100,7 +103,7 @@ def see_through(ego_rgb, ego_seg, peer_rgb, peer_depth, peer_seg, ego_pose, peer
         hole_ratio=float(1 - filled.sum() / occ_px) if occ_px else None,
         reproj_target_px=int((filled & np.isin(lab, tgt_ids)).sum()),
     )
-    return out, zbuf, filled, stats
+    return (out if colour else None), zbuf, filled, stats
 
 
 def geometry_agreement(zbuf, filled, clean_depth, tol=0.01):

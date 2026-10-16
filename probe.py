@@ -43,6 +43,8 @@ def parse():
     p.add_argument("--n_peer", type=int, default=3)
     p.add_argument("--peer_tries", type=int, default=24)
     p.add_argument("--min_target_px", type=int, default=30)
+    p.add_argument("--peer_aim", default="hidden", choices=["hidden", "target"])
+    p.add_argument("--min_fill", type=float, default=0.5)
     p.add_argument("--az_min", type=float, default=30)
     p.add_argument("--az_max", type=float, default=150)
     p.add_argument("--el_min", type=float, default=15)
@@ -138,7 +140,7 @@ def main():
         inits = load_init_states(t["init"])
         scene = Scene(env, t["occluders"], t["targets"], a.res)
         sampler = PeerSampler(rng, a.az_min, a.az_max, a.el_min, a.el_max, a.dist_lo, a.dist_hi,
-                              a.peer_tries, a.min_target_px)
+                              a.peer_tries, a.min_target_px, a.peer_aim, a.min_fill)
         max_steps = a.max_steps or MAX_STEPS[t["suite"]]
         info = dict(t, n_init_states=len(inits), peer_camera=scene.camera_names()[scene.peer],
                     occ_geoms={k: len(v) for k, v in scene.occ_geoms.items()},
@@ -155,7 +157,7 @@ def main():
 
             ep_peer = None
             if a.drive in ("peer", "reproj"):
-                c = look_center(scene)
+                c = sampler.center(scene)
                 found, _ = sampler.sample(scene, c, 1)
                 ep_peer = found[:1]
             success, steps, n_probe = False, 0, 0
@@ -165,7 +167,7 @@ def main():
                 do_probe = a.probe_every and step % a.probe_every == 0 and (not a.max_probes or n_probe < a.max_probes)
                 if do_probe:
                     t_pr = time.time()
-                    c = look_center(scene)
+                    c = sampler.center(scene)
                     peers, tried = sampler.sample(scene, c, a.n_peer)
                     images, diags = render_conditions(scene, peers, a.hole_iters)
                     meta.update(n_peer_found=len(peers), peer_tried=tried)
