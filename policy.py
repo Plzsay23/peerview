@@ -168,6 +168,14 @@ def env_action(action):
     return a
 
 
+def tie_gap(logp, bins):
+    """Largest log-prob gap (nats) between the argmax bin and the generated bin over the 7 dims: 0 when they agree.
+    A mismatch with a gap of ~1e-2 or less is a bf16 near-tie between the KV-cached generate path and the
+    full forward pass, not a misaligned position (a misalignment gives gaps of several nats)."""
+    lp = np.asarray(logp)
+    return float((lp.max(-1) - lp[np.arange(len(bins)), np.asarray(bins)]).max())
+
+
 def kl_per_dim(logp_teacher, logp_other):
     p = np.exp(logp_teacher)
     return (p * (logp_teacher - logp_other)).sum(-1)

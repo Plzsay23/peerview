@@ -21,7 +21,7 @@ import time
 import numpy as np
 
 from conditions import PeerSampler, grid_png, look_center, render_conditions
-from policy import DryPolicy, env_action, kl_per_dim
+from policy import DryPolicy, env_action, kl_per_dim, tie_gap
 from scene import MAX_STEPS, Scene, dummy_action, list_tasks, load_init_states, make_env
 
 CKPT_SUFFIX = {"libero_spatial": "spatial", "libero_object": "object", "libero_goal": "goal", "libero_10": "10"}
@@ -91,6 +91,7 @@ def score(policy, language, images, diags, meta):
             grip_agree=bool(np.sign(act[-1] - 0.5) == np.sign(t_act[-1] - 0.5)),
             action=act, teacher_action=t_act,
             teacher_argmax_ok=bool((t_lp.argmax(-1) == policy.bin_of(t_tok)).all()),
+            teacher_tie_gap=tie_gap(t_lp, policy.bin_of(t_tok)),
             **diags[key],
         ))
     return rows

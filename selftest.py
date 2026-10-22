@@ -24,7 +24,7 @@ import os
 import numpy as np
 from PIL import Image
 
-from policy import EMPTY_TOKEN, env_action, preprocess_image
+from policy import EMPTY_TOKEN, env_action, preprocess_image, tie_gap
 from scene import MAX_STEPS, Scene, dummy_action, language_from_filename, list_tasks, load_init_states, make_env
 
 
@@ -207,7 +207,9 @@ def main():
                         rep.add("action", f"maxdiff {d:.2e}", d < 1e-6, f"ep{ep} t={step}")
                         lp = policy.logprobs(obs["agentview_image"], t["language"], tok)
                         ok = bool((lp.argmax(-1) == policy.bin_of(tok)).all())
-                        rep.add("teacher", f"argmax==tokens {ok}", ok, f"ep{ep} t={step}")
+                        gap = tie_gap(lp, policy.bin_of(tok))
+                        # Pass if exact, or a near-tie (bf16 cached vs uncached forward); fail on a real gap.
+                        rep.add("teacher", f"argmax==tokens {ok} gap={gap:.4f} nats", ok or gap < 0.05, f"ep{ep} t={step}")
                 else:
                     ref_act = np.zeros(7)
                     ref_act[-1] = 0.0  # open
