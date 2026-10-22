@@ -148,11 +148,18 @@ def main():
                     tgt_geoms={k: len(v) for k, v in scene.tgt_geoms.items()})
         n_png = 0
         for ep in range(min(a.n_init, len(inits))):
+            # As in openvla run_libero_eval: reset, then load the init state. Without the reset the controller
+            # carried state across episodes (2026-10-22: every success was an ep0). LIBERO's hard reset rebuilds
+            # the MjSim, so the Scene (model/data handles, renderer) is closed before and rebuilt after.
+            scene.close()
+            env.reset()
+            scene = Scene(env, t["occluders"], t["targets"], a.res)
             obs = env.set_init_state(inits[ep])
+            ori, ori_err = scene.calibrate_orientation(obs["agentview_image"])
             if ep == 0:
-                info["orientation"], info["orientation_err"] = scene.calibrate_orientation(obs["agentview_image"])
-                print(f"[{t['suite']}] {t['name']}: orientation={info['orientation']} "
-                      f"err={info['orientation_err'][info['orientation']]:.2f} occ_geoms={info['occ_geoms']}", flush=True)
+                info["orientation"], info["orientation_err"] = ori, ori_err
+                print(f"[{t['suite']}] {t['name']}: orientation={ori} err={ori_err[ori]:.2f} "
+                      f"occ_geoms={info['occ_geoms']} language=\"{t['language']}\"", flush=True)
             for _ in range(a.num_steps_wait):
                 obs, _, _, _ = env.step(dummy_action())
 

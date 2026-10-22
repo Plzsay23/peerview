@@ -50,6 +50,22 @@ def bddl_instances(text):
     return names
 
 
+def language_from_filename(fname):
+    """The instruction LIBERO's benchmark (and hence OpenVLA's LIBERO fine-tuning data) uses: derived from the
+    file name, NOT the BDDL `:language` line. Copy of libero.libero.benchmark.grab_language_from_filename.
+    e.g. pick_up_the_black_bowl_in_the_top_drawer_... -> "pick up the black bowl in the top drawer ..."
+    whereas the BDDL says "Pick the akita black bowl in the top layer ...". Using the BDDL text dropped OpenVLA
+    to 3/30 on unoccluded libero_spatial (2026-10-22)."""
+    x = os.path.basename(fname)
+    if x[0].isupper():  # LIBERO-100 / libero_10 scene-prefixed names
+        start = x.find("SCENE") + (8 if "SCENE10" in x else 7)
+        language = " ".join(x[start:].split("_"))
+    else:
+        language = " ".join(x.split("_"))
+    end = language.find(".bddl")
+    return language[:end] if end >= 0 else language
+
+
 def bddl_language(text):
     return re.search(r"\(:language (.*?)\)\s*$", text, re.M).group(1).strip()
 
@@ -87,7 +103,8 @@ def list_tasks(occ_root, libero_root, suites=None, require_init=True, original=F
                 name=stem,
                 bddl=occ_path,
                 init=init_path if os.path.exists(init_path) else None,
-                language=bddl_language(occ_txt),
+                language=language_from_filename(fname),
+                bddl_language=bddl_language(occ_txt),
                 language_same=bddl_language(occ_txt) == bddl_language(orig_txt),
                 occluders=sorted(bddl_instances(occ_txt) - bddl_instances(orig_txt)),
                 targets=bddl_obj_of_interest(occ_txt),
