@@ -191,8 +191,13 @@ def main():
                         n_png += 1
                     n_probe += 1
 
-                if a.drive in ("occ", "clean"):
-                    img = scene.to_obs(scene.render(scene.ego, hide=scene.occ_ids if a.drive == "clean" else None))
+                if a.drive == "occ":
+                    # The env's own camera image: robosuite samples it inside the control step, our renderer draws the
+                    # post-step state (a moving arm differs by a few px). For the occluded view the env image is
+                    # exactly what openvla's eval feeds, so use it.
+                    img = obs["agentview_image"]
+                elif a.drive == "clean":
+                    img = scene.to_obs(scene.render(scene.ego, hide=scene.occ_ids))
                 elif ep_peer:
                     images, _ = render_conditions(scene, ep_peer, a.hole_iters)
                     img = images[(a.drive, 0)]

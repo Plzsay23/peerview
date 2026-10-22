@@ -28,6 +28,41 @@ def _tf_or_none():
         return None
 
 
+def preprocess_image(img_obs, center_crop=True, tf=None):
+    """img_obs: HxWx3 uint8 in the env obs['agentview_image'] convention -> PIL image the processor gets.
+    Op-for-op the openvla path (get_libero_image -> resize_image, then get_vla_action's center crop), including
+    doing the crop-box arithmetic in tf float32: computing it in float64 changed pixels by 1 (selftest.py)."""
+    img = img_obs[::-1, ::-1]  # "rotate 180 degrees to match train preprocessing"
+    if tf is not None:
+        x = tf.image.encode_jpeg(img)
+        x = tf.io.decode_image(x, expand_animations=False, dtype=tf.uint8)
+        x = tf.image.resize(x, (224, 224), method="lanczos3", antialias=True)
+        x = tf.cast(tf.clip_by_value(tf.round(x), 0, 255), tf.uint8).numpy()
+        image = Image.fromarray(x).convert("RGB")
+        if center_crop:
+            image = tf.convert_to_tensor(np.array(image))
+            orig_dtype = image.dtype
+            image = tf.image.convert_image_dtype(image, tf.float32)
+            image = tf.expand_dims(image, axis=0)
+            h = tf.reshape(tf.clip_by_value(tf.sqrt(0.9), 0, 1), shape=(1,))
+            w = tf.reshape(tf.clip_by_value(tf.sqrt(0.9), 0, 1), shape=(1,))
+            boxes = tf.stack([(1 - h) / 2, (1 - w) / 2, (1 - h) / 2 + h, (1 - w) / 2 + w], axis=1)
+            image = tf.image.crop_and_resize(image, boxes, tf.range(1), (224, 224))[0]
+            image = tf.clip_by_value(image, 0, 1)
+            image = tf.image.convert_image_dtype(image, orig_dtype, saturate=True)
+            image = Image.fromarray(image.numpy()).convert("RGB")
+        return image
+    img = np.ascontiguousarray(img)
+    buf = __import__("io").BytesIO()
+    Image.fromarray(img).save(buf, format="JPEG", quality=95)
+    x = Image.open(buf).convert("RGB").resize((224, 224), Image.LANCZOS)
+    if center_crop:
+        s = np.sqrt(0.9) * 224
+        o = (224 - s) / 2
+        x = x.crop((o, o, o + s, o + s)).resize((224, 224), Image.BILINEAR)
+    return x
+
+
 class OpenVLAPolicy:
     def __init__(self, ckpt, suite, device="cuda:0", attn="sdpa", center_crop=True):
         import torch
@@ -59,28 +94,7 @@ class OpenVLAPolicy:
 
     # ------------------------------------------------------------------ preprocessing
     def preprocess(self, img_obs):
-        """img_obs: HxWx3 uint8 in the env obs['agentview_image'] convention."""
-        img = np.ascontiguousarray(img_obs[::-1, ::-1])  # "rotate 180 degrees to match train preprocessing"
-        if self.tf is not None:
-            tf = self.tf
-            x = tf.io.decode_image(tf.image.encode_jpeg(img), expand_animations=False, dtype=tf.uint8)
-            x = tf.image.resize(x, (224, 224), method="lanczos3", antialias=True)
-            x = tf.cast(tf.clip_by_value(tf.round(x), 0, 255), tf.uint8)
-            if self.center_crop:
-                x = tf.image.convert_image_dtype(x, tf.float32)[None]
-                s = float(np.sqrt(0.9))
-                o = (1 - s) / 2
-                x = tf.image.crop_and_resize(x, [[o, o, o + s, o + s]], [0], (224, 224))[0]
-                x = tf.image.convert_image_dtype(tf.clip_by_value(x, 0, 1), tf.uint8, saturate=True)
-            return Image.fromarray(x.numpy()).convert("RGB")
-        buf = __import__("io").BytesIO()
-        Image.fromarray(img).save(buf, format="JPEG", quality=95)
-        x = Image.open(buf).convert("RGB").resize((224, 224), Image.LANCZOS)
-        if self.center_crop:
-            s = np.sqrt(0.9) * 224
-            o = (224 - s) / 2
-            x = x.crop((o, o, o + s, o + s)).resize((224, 224), Image.BILINEAR)
-        return x
+        return preprocess_image(img_obs, self.center_crop, self.tf)
 
     def _inputs(self, img_obs, language):
         prompt = f"In: What action should the robot take to {language.lower()}?\nOut:"

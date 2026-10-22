@@ -28,6 +28,31 @@ export MUJOCO_EGL_DEVICE_ID=0   # = nvidia-smi GPU 3 on this server
 cd ~/Desktop/sj/peerview
 ```
 
+## 0.5 자가 검사 (공식 openvla LIBERO 평가와 단계별 대조, 약 10분)
+
+```bash
+python selftest.py \
+  --occ_root ~/Desktop/sj/peerview_ext/Libero-Occ \
+  --libero_root ~/Desktop/sj/peerview_ext/LIBERO \
+  --suite libero_spatial \
+  --n_tasks 2 \
+  --n_init 2 \
+  --max_steps 0 \
+  --check_every 10 \
+  --device cuda:3 \
+  --attn sdpa
+```
+
+| 인자 | 기본 | 뜻 |
+|---|---|---|
+| `--n_tasks` | `2` | 원본 LIBERO 장면 태스크 수 |
+| `--n_init` | `2` | 태스크당 에피소드 수 |
+| `--max_steps` | `0` | 0이면 suite 최대(spatial 220) |
+| `--check_every` | `10` | 모델 단계(action, teacher) 대조 주기. 이미지는 매 step |
+| `--device` | `cuda:0` | 정책 카드(nvidia-smi 번호) |
+
+`--no_model` 이면 모델 없는 단계만. 마지막 줄 `ALL PASS` 여야 하고, 로봇은 공식 경로의 액션으로 움직이므로 `reference-path success` 가 공식 평가 재현치.
+
 ## 1. 렌더 검사 (정책 없음, GPU 거의 안 씀)
 
 ```bash
